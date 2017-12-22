@@ -13,10 +13,10 @@
   <script type="text/javascript">
     // ... load a visualization
     function loadApps() {
-        $.ajax( {url: '/api/apps', success : function (result) {
-            data = JSON.parse(result);
-        //$.ajax( {url: '/data/all.json', success : function (result) {
-            //var data = result;
+        //$.ajax( {url: '/api/apps', success : function (result) {
+            //data = JSON.parse(result);
+        $.ajax( {url: '/data/all.json', success : function (result) {
+            var data = result;
             $('#applications').empty();
             var idx = 0
             for( app of data) {
@@ -29,8 +29,8 @@
     }
 
     function loadDot( appid) {
-        //$.ajax({url: "/api/fapps/"+ appid, success: function(result) {
-        $.ajax({url: "/api/apps/"+ appid, success: function(result) {
+        $.ajax({url: "/api/fapps/"+ appid, success: function(result) {
+        //$.ajax({url: "/api/apps/"+ appid, success: function(result) {
             var container = document.getElementById('visualization');
             var options = {
                 width: "100%",
@@ -72,10 +72,7 @@
             document.getElementById("loader").style.display='none';
             document.getElementById("tab-bar-down").classList.add('drop-menu')   
 
-            
-
-            //Unixtimestamp convert format
-           
+            //Unixtimestamp convert format           
             var timeString = result.detail.creation
             var tdate = new Date(timeString*1000);
             var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -87,8 +84,6 @@
             var sec = tdate.getSeconds();
             var time = date + ' ' + month + ' ' + year + ' ' + hour + ':' + min + ':' + sec ;
             
-            console.log(time)
-
             //fillout application detail desc 
             document.getElementById("app_detail_name").innerText = result.detail.name;
             document.getElementById("app_detail_desc").textContent = result.detail.description;
@@ -297,7 +292,6 @@
                     <li id="detail-btn" class="list-tab-bar-left list-tab-bar-clickable list-tab-bar list-tab-bar-1">Detail</li>
                     <a href="#" id="download"><li id="download-btn" class="list-tab-bar list-tab-bar-left download-btn-text list-tab-bar-2 list-tab-bar-clickable">Download</li></a>
                     <li class="list-tab-bar list-tab-bar-left list-tab-bar-3 list-tab-bar-nonclickable list-tab-bar-unavailable"></li>
-                    
                 </ul>
             </div>
         </div>
@@ -323,10 +317,6 @@
                     <!--table-->
                     <div class="table-wrap">
                         <table class="detail-table">
-                             <!-- <tr class="tblresultshdr bold">
-                                    <td class="col1">Propety Name</td>
-                                    <td class=>Value</td>
-                                </tr> -->
                                 <tr>
                                     <td class="col1">Description</td>
                                     <td id="app_detail_desc"></td>
