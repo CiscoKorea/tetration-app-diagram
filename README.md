@@ -27,12 +27,23 @@ $ cd tetration-app-diagram
 $ npm install 
 ```
 
-## modify credentials.js 
+## Windows installation guide ( tested on Windows 10 Desktop) 
+```
+install nodejs (8.x LTS version) from nodejs.org 
+
+# clone or download repository 
+$ git clone https://github.com/CiscoKorea/tetration-app-diagram
+$ cd tetration-app-diagram 
+$ npm install 
+```
+
+## Option 1 (online usage): modify credentials.js 
 update routes/credentials.js with your tetration cluster and api_key, api_secret 
+
+
+## Option 2 (offline usage) : download your applications data from your tetration cluster 
 update api_cred.json with your tetration cluster's api_key and api_secret
 update app_dump.py with your tetration cluster's end_point information 
-
-## download app applications data from your cluster 
 ```
 $ python app_dump.py 
 $ cd public/data 
