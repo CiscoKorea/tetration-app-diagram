@@ -43,7 +43,6 @@ check all.json & {app_id}.json files & folders
 ```
 $ cd tetration-app-diagram 
 $ npm start
-
 ```
 Open your brower and connect server( or localhost) with 3003 port 
 
