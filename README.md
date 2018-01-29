@@ -36,12 +36,24 @@ $ git clone https://github.com/CiscoKorea/tetration-app-diagram
 $ cd tetration-app-diagram 
 $ npm install 
 ```
+## MacOS installation guide ( tested on MacOS Sierra ) 
+```
+install nodejs(8.x) from HomeBrew 
+
+#For HomeBrew installation ( https://brew.sh ) 
+$ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+
+# clone or download repository 
+$ git clone https://github.com/CiscoKorea/tetration-app-diagram
+$ cd tetration-app-diagram 
+$ npm install 
+```
 
 ## Option 1 (online usage): modify credentials.js 
 update routes/credentials.js with your tetration cluster and api_key, api_secret 
 
 
-## Option 2 (offline usage) : download your applications data from your tetration cluster 
+## Option 2 (offline usage) : download your application data from your tetration cluster 
 update api_cred.json with your tetration cluster's api_key and api_secret
 update app_dump.py with your tetration cluster's end_point information 
 ```
