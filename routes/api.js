@@ -21,7 +21,8 @@ router.get('/apps', (req, res, next) => {
         retval.push(d)
         //console.log( JSON.stringify(d))
     });
-    res.send( JSON.stringify(retval));
+    //res.send( JSON.stringify(retval));
+    res.send(body);
   });
 });
 
