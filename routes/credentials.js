@@ -1,8 +1,8 @@
 // medusa
 module.exports = {
-  API_ENDPOINT : "https://medusa-cpoc.cisco.com",
-  API_KEY: "095b398501f941309d24410f05b16557",
-  API_SECRET: "9db44e43e1a7ba474b8263da5d49fd1649b93add"
+  API_ENDPOINT : "https://tetration-cluster.hostname.here",
+  API_KEY: "tetration_api_key_for_application",
+  API_SECRET: "tetration_api_secret_for_application"
 }
 
 //module.exports = {
