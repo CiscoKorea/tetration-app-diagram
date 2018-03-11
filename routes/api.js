@@ -178,6 +178,18 @@ router.get('/fapps/:appid', (req, res, next) => {
     res.send( appVisData ); 
 });
 
+router.get('/apps/pos/:appid', (req, res, next) => {
+    var appid = req.params.appid;
+    var body = JSON.parse( fs.readFileSync('public/data/' + appid + '.pos', 'utf8'));
+    res.send( body)
+});
+
+router.post('/apps/pos/:appid', (req, res, next) => {
+    var appid = req.params.appid
+    fs.writeFileSync( 'public/data/' + appid + '.pos', JSON.stringify(req.body), 'utf8');
+    res.sendStatus(200);
+});
+
 router.get('/apps/:appid', (req, res, next) => {
     var appid = req.params.appid;
     tetclient.get('/applications/' + appid + '/details', (error, response, body) => {

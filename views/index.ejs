@@ -17,6 +17,8 @@
     var network_type = 1;
     var highlightActive = false;
     var local_data = true;
+    var current_app;
+    var network;
 
     // ... load a visualization
     function loadApps() {
@@ -37,6 +39,7 @@
     }
 
     function loadDot( appid) {
+        current_app = appid;
         var apipath = '';
         if (local_data)
             apipath = '/api/fapps/';
@@ -99,8 +102,8 @@
             document.getElementById("download").addEventListener('click', export_image, false);
             document.getElementById("loader").style.display='none';
             document.getElementById("tab-bar-down").classList.add('drop-menu')   
-            //toggle network type 
-            document.getElementById("networktype").addEventListener('click', toggleNetworkType, false);
+            //save diagram position 
+            document.getElementById("savediagram").addEventListener('click', saveDiagramPosition, false);
 
             //Unixtimestamp convert format
             var timeString = result.detail.creation
@@ -130,10 +133,17 @@
         else 
             network_type = 1;
     }
+    function saveDiagramPosition() {
+        var node_pos = { body:'', appid: current_app};
+        node_pos.body = network.getPositions();
+        node_pos.appid = current_app;
+        saveLocation( node_pos); 
+    }
     
     function showDiagram( event) {
         var appid = event.target.getAttribute('data-app-id')
         loadDot( appid);
+        getLocation( appid);
     }
 
     function showServerName(event){
@@ -286,7 +296,28 @@
             }
         }
         edgesDataset.update(updateArray)
-}
+    }
+
+    function saveLocation( params) {
+        $.ajax( {   url: '/api/apps/pos/' + params.appid, 
+                    type: 'post', 
+                    data: JSON.stringify(params.body), 
+                    contentType: 'application/json', 
+                    success : function (result) {  alert('Diagram position saved...')}
+            });         
+    }
+
+    function getLocation( appid) {
+        $.ajax( {   url: '/api/apps/pos/'+ appid,
+                    type: 'get',
+                    success: function(result) {
+                        Object.keys(result).forEach( function(key) {
+                            network.moveNode( key,  Number(result[key].x), Number(result[key].y));
+                        });
+                        network.redraw();
+                    }
+                });
+    }
     //-framework
     
     // $(window).on('mousemove', function () {
@@ -435,7 +466,7 @@
                     <li id="list-name-on-menu" class="list-tab-bar list-tab-bar-0"></li>
                     <li id="detail-btn" class="list-tab-bar-left list-tab-bar-clickable list-tab-bar list-tab-bar-1">Detail</li>
                     <a href="#" id="download"><li id="download-btn" class="list-tab-bar list-tab-bar-left download-btn-text list-tab-bar-2 list-tab-bar-clickable">Download</li></a>
-                    <a href="#" id="networktype"><li id="toggle-btn" class="list-tab-bar list-tab-bar-left list-tab-bar-3 list-tab-bar-clickable">Toggle Diagram</li></a>
+                    <a href="#" id="savediagram"><li id="toggle-btn" class="list-tab-bar list-tab-bar-left list-tab-bar-3 list-tab-bar-clickable">Save Diagram</li></a>
                 </ul>
             </div>
         </div>
