@@ -174,15 +174,23 @@ function parseData(body) {
 
 router.get('/fapps/:appid', (req, res, next) => {
     var appid = req.params.appid;
-    var body = JSON.parse(fs.readFileSync('public/data/'+appid+'.json', 'utf8'));
-    var appVisData = parseData ( body);
-    res.send( appVisData ); 
+    try {
+        var body = JSON.parse(fs.readFileSync('public/data/'+appid+'.json', 'utf8'));
+        var appVisData = parseData ( body);
+        res.send( appVisData ); 
+    } catch ( exception ) {
+        res.sendStatus(404);
+    }
 });
 
 router.get('/apps/pos/:appid', (req, res, next) => {
     var appid = req.params.appid;
-    var body = JSON.parse( fs.readFileSync('public/data/' + appid + '.pos', 'utf8'));
-    res.send( body)
+    try {
+        var body = JSON.parse( fs.readFileSync('public/data/' + appid + '.pos', 'utf8'));
+        res.send( body)
+    } catch ( exception ) {
+        res.sendStatus(404)
+    } 
 });
 
 router.post('/apps/pos/:appid', (req, res, next) => {
