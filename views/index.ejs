@@ -50,14 +50,16 @@
         }}); 
     }
 
-    function loadDot( appid) {
+    function loadDot( appid, ver) {
+        if ( current_app != appid) 
+            ver = null;
         current_app = appid;
         var apipath = '';
         if (local_data)
             apipath = '/api/fapps/';
         else
             apipath = '/api/apps/';
-        $.ajax({url: apipath + appid, success: function(result) {
+        $.ajax({url: apipath + appid+'?version='+ver, success: function(result) {
             var container = document.getElementById('visualization');
             var options = {
                 width: "100%",
@@ -134,9 +136,10 @@
             document.getElementById("app_detail_name").innerText = result.detail.name;
             document.getElementById("app_detail_desc").textContent = result.detail.description;
             document.getElementById("app_detail_author").textContent = result.detail.author;
-            document.getElementById("app_detail_version").innerHTML = "<select width=\"100%\" name=\"version\"><option value=\""+result.detail.version+"\">" +result.detail.version +"</select>";
+            document.getElementById("app_detail_version").innerHTML = convertVersionsToHTML(result.detail.version_list, ver)
             document.getElementById("app_detail_primary").textContent = result.detail.primary;
             document.getElementById("app_detail_create").textContent = time;
+            //console.log(result.detail.version_list)
         }});
     }
 
@@ -211,13 +214,31 @@
         var node_pos = { body:'', appid: current_app};
         node_pos.body = network.getPositions();
         node_pos.appid = current_app;
-        saveLocation( node_pos); 
+        var el = document.getElementById('versionselect')
+        var ver = null
+        if ( el )
+            ver = el.options[el.selectedIndex].value;
+        saveLocation( node_pos, ver); 
     }
     
     function showDiagram( event) {
         var appid = event.target.getAttribute('data-app-id')
-        loadDot( appid);
-        getLocation( appid);
+        var el = document.getElementById('versionselect')
+        var ver = null
+        if ( el )
+            ver = el.options[el.selectedIndex].value;
+        loadDot( appid, ver);
+        getLocation( appid, ver);
+    }
+
+    function showDiagramWithVersion( appid ) {
+        var el = document.getElementById('versionselect')
+        //console.log(el)
+        var ver = null
+        if ( el )
+            ver = el.options[el.selectedIndex].value;
+        loadDot( appid, ver);
+        getLocation( appid, ver);        
     }
 
     function showServerName(event){
@@ -239,6 +260,21 @@
         } catch(e) {
             alert("Error description: " + e.message);
         }
+    }
+
+    function convertVersionsToHTML( versions, ver) {
+        var htmlresp = '<select id=\"versionselect\" name=\"version\" onchange=\"switchVersion()\" >'
+        for (var v in versions) {
+            if ( versions[v] == ver || (ver == null && v == versions.length -1))
+                htmlresp += '<option selected value=\"' + versions[v] + '\">' + 'v'+ versions[v] +'</option>'
+            else
+                htmlresp += '<option value=\"' + versions[v] + '\">' + 'v'+ versions[v] +'</option>'
+        }
+        return htmlresp += "</select>"
+    }
+
+    function switchVersion( ) {
+        return showDiagramWithVersion( current_app);
     }
 
     function getColor( shape, depth) {
@@ -405,8 +441,8 @@
         edgesDataset.update(updateArray)
     }
 
-    function saveLocation( params) {
-        $.ajax( {   url: '/api/apps/pos/' + params.appid, 
+    function saveLocation( params, ver) {
+        $.ajax( {   url: '/api/apps/pos/' + params.appid + '?version='+ver, 
                     type: 'post', 
                     data: JSON.stringify(params.body), 
                     contentType: 'application/json', 
@@ -414,8 +450,8 @@
             });         
     }
 
-    function getLocation( appid) {
-        $.ajax( {   url: '/api/apps/pos/'+ appid,
+    function getLocation( appid, ver) {
+        $.ajax( {   url: '/api/apps/pos/'+ appid +'?version='+ ver,
                     type: 'get',
                     success: function(result) {
                         Object.keys(result).forEach( function(key) {
@@ -424,6 +460,16 @@
                         network.redraw();
                     }
                 });
+    }
+
+    function getVersionList(appid) {
+        var versions = []
+        $.ajax( {   url: '/api/fapps/:appid/versions',
+                    type: 'get',
+                    success: function(result) {
+                        versions = result;
+                    }});
+        return versions;
     }
     //-framework
     
@@ -557,6 +603,11 @@
             })
            
         })
+
+        $("#versionselect").change( function( ver) {
+            console.log('version change click')
+            alert( 'selected version is ' + ver);
+        });
     });
 
   </script>

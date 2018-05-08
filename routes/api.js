@@ -1,4 +1,5 @@
 var express = require('express');
+var url = require('url')
 var fs = require('fs');
 var moment = require('moment');
 var RestClient = require('./tetration.js');
@@ -91,6 +92,7 @@ function parseData(body) {
     appVisData.detail.primary = body.primary
     appVisData.detail.version = body.version
     appVisData.detail.creation = body.created_at
+    appVisData.detail.version_list = []
 
     //console.log( body);
     // cluster handling 
@@ -230,26 +232,48 @@ function parseData(body) {
 
 router.get('/fapps/:appid', (req, res, next) => {
     var appid = req.params.appid;
-    var body = JSON.parse(fs.readFileSync('public/data/'+appid+'.json', 'utf8'));
-    var appVisData = parseData ( body);
-    var versions = []
-    fs.readdirSync( 'public/data/'+appid).forEach( file => {
-        versions.push( file)
-        console.log(file);
-    });
-    appVisData.version_list = versions
-    res.send( appVisData ); 
+    var ver = req.query.version 
+    try {
+        var body;
+        if ( ver && ver != 'null' )
+            body = JSON.parse(fs.readFileSync('public/data/'+appid +'/'+ver+'.json', 'utf8'));
+        else
+            body = JSON.parse(fs.readFileSync('public/data/'+appid +'.json', 'utf8'));
+        var appVisData = parseData ( body);
+        var versions = []
+        fs.readdirSync( 'public/data/'+appid).forEach( file => {
+            versions.push( file.substring(0, file.length-5))
+            //console.log(file.substring(0, file.length-5));
+        });
+        appVisData.detail.version_list = versions
+        res.send( appVisData ); 
+    } catch ( exception) {
+        res.sendStatus(404)
+    }
 });
 
 router.get('/apps/pos/:appid', (req, res, next) => {
     var appid = req.params.appid;
-    var body = JSON.parse( fs.readFileSync('public/data/' + appid + '.pos', 'utf8'));
-    res.send( body)
+    var ver = req.query.version 
+    try {
+        var body;
+        if ( ver && ver != 'null' )
+            body = JSON.parse( fs.readFileSync('public/data/' + appid + '/' + ver + '.pos', 'utf8'));
+        else
+            body = JSON.parse( fs.readFileSync('public/data/' + appid + '.pos', 'utf8'));
+        res.send( body)
+    } catch ( exception ) {
+        res.sendStatus(404)
+    }
 });
 
 router.post('/apps/pos/:appid', (req, res, next) => {
     var appid = req.params.appid
-    fs.writeFileSync( 'public/data/' + appid + '.pos', JSON.stringify(req.body), 'utf8');
+    var ver = req.query.version
+    if ( ver && ver != 'null' )
+        fs.writeFileSync( 'public/data/' + appid + '/' + ver + '.pos', JSON.stringify(req.body), 'utf8');
+    else
+        fs.writeFileSync( 'public/data/' + appid + '.pos', JSON.stringify(req.body), 'utf8');
     res.sendStatus(200);
 });
 
