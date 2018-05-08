@@ -30,14 +30,13 @@ if resp.status_code == 200 :
         appf.write( resp.text)
         respbody = json.loads( resp.text)
         for app in respbody:
+            print(app)
             appnames = {}
             appnames['id'] = str(app['id'])
             appnames['name'] = str(app['name'])
-            appnames['version'] = str(app['version'])
-            apps.append( appnames)
+            appnames['version'] = str(app['latest_adm_version'])
 
 for app in apps:
-    print(app['id'])
     resp = restclient.get('/applications/%s/details' %(app['id']))
     if resp.status_code == 200:
         try:

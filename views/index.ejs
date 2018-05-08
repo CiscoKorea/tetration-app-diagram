@@ -10,6 +10,8 @@
   <link rel="shortcut icon" href="assets/favicon.ico">
   <link href="stylesheets/style.css" rel="stylesheet" type="text/css">
 
+  <script src="/socket.io/socket.io.js"></script>
+ 
   <script type="text/javascript">
     var allNodes = new Object()
     var allEdges = new Object()
@@ -19,6 +21,16 @@
     var local_data = true;
     var current_app;
     var network;
+    var show_port = true;
+	var edge_with_box = false;
+	var port_summary = true;
+    var excl_ports={
+        'TCP': [],
+        'UDP': [],
+        'ICMP': [],
+        'IGMP': []
+    }
+    var appDetails;
 
     // ... load a visualization
     function loadApps() {
@@ -38,18 +50,21 @@
         }}); 
     }
 
-    function loadDot( appid) {
+    function loadDot( appid, ver) {
+        if ( current_app != appid) 
+            ver = null;
         current_app = appid;
         var apipath = '';
         if (local_data)
             apipath = '/api/fapps/';
         else
             apipath = '/api/apps/';
-        $.ajax({url: apipath + appid, success: function(result) {
+        $.ajax({url: apipath + appid+'?version='+ver, success: function(result) {
             var container = document.getElementById('visualization');
             var options = {
                 width: "100%",
                 height: "900",
+                clickToUse: true,
                 edges: {
                     smooth: {
 //                        forceDirection: "none",
@@ -121,12 +136,74 @@
             document.getElementById("app_detail_name").innerText = result.detail.name;
             document.getElementById("app_detail_desc").textContent = result.detail.description;
             document.getElementById("app_detail_author").textContent = result.detail.author;
-            document.getElementById("app_detail_version").textContent = result.detail.version;
+            document.getElementById("app_detail_version").innerHTML = convertVersionsToHTML(result.detail.version_list, ver)
             document.getElementById("app_detail_primary").textContent = result.detail.primary;
             document.getElementById("app_detail_create").textContent = time;
+            //console.log(result.detail.version_list)
         }});
     }
 
+    function handleFileSelect(){
+        if (window.File && window.FileReader && window.FileList && window.Blob) {
+        } else {
+            alert('The File APIs are not fully supported in this browser.');
+            return;
+        }   
+        input = document.getElementById('fileinput');
+        if (!input) {
+            alert("Um, couldn't find the fileinput element.");
+        }
+        else if (!input.files) {
+            alert("This browser doesn't seem to support the `files` property of file inputs.");
+        }
+        else if (!input.files[0]) {
+            alert("Please select a file before clicking 'Load'");               
+        }
+        else {
+            file = input.files[0];
+            fr = new FileReader();
+            fr.onload = receivedText;
+            fr.readAsText(file);
+        }
+    } 
+    function receivedText() {           
+        //result = fr.result;
+        var json_obj = JSON.parse(fr.result);
+        console.log(json_obj);
+        loadLocalDot(json_obj);
+
+    }
+    function handleFileSelect(){
+        if (window.File && window.FileReader && window.FileList && window.Blob) {
+            // nothing 
+        } else {
+            alert('The File APIs are not fully supported in this browser.');
+            return;
+        }   
+        input = document.getElementById('fileinput');
+        if (!input) {
+            alert("Um, couldn't find the fileinput element.");
+        }
+        else if (!input.files) {
+            alert("This browser doesn't seem to support the `files` property of file inputs.");
+        }
+        else if (!input.files[0]) {
+            alert("Please select a file before clicking 'Load'");               
+        }
+        else {
+            file = input.files[0];
+            fr = new FileReader();
+            fr.onload = receivedText;
+            fr.readAsText(file);
+        }
+    }       
+
+    function receivedText() {           
+        //result = fr.result;
+        var json_obj = JSON.parse(fr.result);
+        console.log(json_obj);
+        loadLocalDot(json_obj);
+    }   
     function toggleNetworkType() {
         if ( network_type == 1)
             network_type = 2;
@@ -137,13 +214,31 @@
         var node_pos = { body:'', appid: current_app};
         node_pos.body = network.getPositions();
         node_pos.appid = current_app;
-        saveLocation( node_pos); 
+        var el = document.getElementById('versionselect')
+        var ver = null
+        if ( el )
+            ver = el.options[el.selectedIndex].value;
+        saveLocation( node_pos, ver); 
     }
     
     function showDiagram( event) {
         var appid = event.target.getAttribute('data-app-id')
-        loadDot( appid);
-        getLocation( appid);
+        var el = document.getElementById('versionselect')
+        var ver = null
+        if ( el )
+            ver = el.options[el.selectedIndex].value;
+        loadDot( appid, ver);
+        getLocation( appid, ver);
+    }
+
+    function showDiagramWithVersion( appid ) {
+        var el = document.getElementById('versionselect')
+        //console.log(el)
+        var ver = null
+        if ( el )
+            ver = el.options[el.selectedIndex].value;
+        loadDot( appid, ver);
+        getLocation( appid, ver);        
     }
 
     function showServerName(event){
@@ -165,6 +260,21 @@
         } catch(e) {
             alert("Error description: " + e.message);
         }
+    }
+
+    function convertVersionsToHTML( versions, ver) {
+        var htmlresp = '<select id=\"versionselect\" name=\"version\" onchange=\"switchVersion()\" >'
+        for (var v in versions) {
+            if ( versions[v] == ver || (ver == null && v == versions.length -1))
+                htmlresp += '<option selected value=\"' + versions[v] + '\">' + 'v'+ versions[v] +'</option>'
+            else
+                htmlresp += '<option value=\"' + versions[v] + '\">' + 'v'+ versions[v] +'</option>'
+        }
+        return htmlresp += "</select>"
+    }
+
+    function switchVersion( ) {
+        return showDiagramWithVersion( current_app);
     }
 
     function getColor( shape, depth) {
@@ -258,6 +368,39 @@
                 allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
                 allNodes[selectedNode].hiddenLabel = undefined;
             }
+        } else if (params.edges.length > 0 && local_data == false) {
+//////////////////////////////////////////////////////////////////////////////
+			// display the packet usage on the selected edge in case of online access //
+
+// get edge
+			alert("params: " + JSON.stringify(params));	
+			var selectedEdge = params.edges[0];
+
+// get two nodes of the edge
+			var connectedNodes = network.getConnectedNodes(selectedEdge);
+			alert("connected nodes: " + JSON.stringify(connectedNodes));	
+
+// get info of the two nodes 
+			for (var nodeId in allNodes) {
+				if (nodeId == connectedNodes[0]) {
+					alert("first connected node: " + allNodes[nodeId].label);
+				}
+				else if (nodeId == connectedNodes[1]) {
+					alert("second connected node: " + allNodes[nodeId].label);
+				}
+			}
+
+// get "flow filter" from the "adm filter label" -_-;
+
+
+// query the flow date using the "flow filter"
+
+
+// display the flow information on the edge
+
+
+//////////////////////////////////////////////////////////////////////////////
+
         } else {
             if (highlightActive === true) {
                 //console.log('no node selected')
@@ -298,8 +441,8 @@
         edgesDataset.update(updateArray)
     }
 
-    function saveLocation( params) {
-        $.ajax( {   url: '/api/apps/pos/' + params.appid, 
+    function saveLocation( params, ver) {
+        $.ajax( {   url: '/api/apps/pos/' + params.appid + '?version='+ver, 
                     type: 'post', 
                     data: JSON.stringify(params.body), 
                     contentType: 'application/json', 
@@ -307,8 +450,8 @@
             });         
     }
 
-    function getLocation( appid) {
-        $.ajax( {   url: '/api/apps/pos/'+ appid,
+    function getLocation( appid, ver) {
+        $.ajax( {   url: '/api/apps/pos/'+ appid +'?version='+ ver,
                     type: 'get',
                     success: function(result) {
                         Object.keys(result).forEach( function(key) {
@@ -317,6 +460,16 @@
                         network.redraw();
                     }
                 });
+    }
+
+    function getVersionList(appid) {
+        var versions = []
+        $.ajax( {   url: '/api/fapps/:appid/versions',
+                    type: 'get',
+                    success: function(result) {
+                        versions = result;
+                    }});
+        return versions;
     }
     //-framework
     
@@ -331,25 +484,51 @@
     // });
 
     $(window).on('load',function() {
+        console.log(".window: on");
         $("#loader").fadeOut("slow");
     });
 
     $(document).ready(function(){
+
         $('.list-tab-bar-1').click(function(){return false;})
 
         $('#nav-icon1').click(function(){
+            console.log("#nav-icon1: click");
             $(this).toggleClass('open');
         });
 
         $(".left-menu-col-1").click(function(event){
             event.preventDefault();
             $(".side-menu").toggleClass("menushow");
-            $("#nav-icon1").toggleClass("open");
+            $("#nav-icon1").toggleClass("close");
+            $("#fileinput").hide();
+            $("#btnLoad").hide();
+        });
+
+        $(".left-menu-col-2").click(function(event){
+            console.log('left-menu-col-2 clicked')
+            event.preventDefault();
+            $("#fileinput").show();
+            $("#btnLoad").show();
+            //$('.tab-bar-widget-1').removeClass('show-detail');
+
+            //$(".side-menu").toggleClass("menushow");
+            //$("#nav-icon1").toggleClass("close"); 
+            //var win = window.open("/localdot","_self");  
+            //var win = window.open("/alert","Alert Viewer");
+        });
+
+        $(".left-menu-col-3").click(function(event){
+            event.preventDefault();
+            var win = window.open("/alert","Alert Viewer");
+            //alertlog();
+            //$(".side-menu").toggleClass("menushow");
+            //$("#nav-icon1").toggleClass("close");
         });
         
         $("#nav-icon1").click(function(event){
-        event.preventDefault();
-        $(".side-menu").toggleClass("menushow");   
+            event.preventDefault();
+            $(".side-menu").toggleClass("menushow");   
         });
 
         //$("#alarm").click(function(event){
@@ -369,7 +548,7 @@
         });
 
         $(".side-menu-sub").hover(function(){
-         $('.side-menu-sub').show();
+            $('.side-menu-sub').show();
         },function(){
            $('.side-menu-sub').hide();
         });
@@ -414,6 +593,21 @@
                 $("#loader").hide();
             })
         })
+        $("#btnLoad").click(function(){
+            console.log("btnload for file open");
+            $("#fileinput").hide();
+            $("#btnLoad").hide();
+            $("#loader").show();
+            $('#visualization').on('load', function(){
+                $("#loader").hide();
+            })
+           
+        })
+
+        $("#versionselect").change( function( ver) {
+            console.log('version change click')
+            alert( 'selected version is ' + ver);
+        });
     });
 
   </script>
@@ -506,7 +700,7 @@
                                 </tr>
                                 <tr>
                                     <td class="col1">Version</td>
-                                    <td id="app_detail_version"></td>
+                                    <td id="app_detail_version"><select name='version'></select></td>
                                 </tr>
                                 <tr>
                                     <td class="col1">Primary</td>
@@ -527,12 +721,14 @@
                 </div>
                 <div class="left-menu-col left-menu-col-2">
                     <div class="nav-2-icon-wrap">
-                        <span class="icon-Asset-b icon-Asset-15 icon-Asset-b-nonclickable"></span>
+                        <span class="icon-Asset-b icon-Asset-15"></span>
+                        <!-- <span class="icon-Asset-b icon-Asset-15 icon-Asset-b-nonclickable"></span> -->
                     </div>
                 </div>
                 <div class="left-menu-col left-menu-col-3">
                     <div class="nav-2-icon-wrap">
-                        <span class="icon-Asset-b icon-Asset-16 icon-Asset-b-nonclickable"></span>
+                        <span class="icon-Asset-b icon-Asset-16"></span>
+                      <!--  <span class="icon-Asset-b icon-Asset-16 icon-Asset-b-nonclickable"></span> -->
                     </div>
                 </div>
                 <div class="left-menu-col left-menu-col-4">
@@ -590,6 +786,8 @@
 
         <div class="content-wrap">
             <div class="viz-wrap">
+                    <input type="file" id="fileinput" hidden/>
+                    <input type='button' id='btnLoad' value='load' onclick='handleFileSelect();' hidden>
                 <div id="loader"></div>
                 <div id="visualization" height="100%" width="100%"></div>
             </div> 

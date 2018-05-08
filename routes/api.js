@@ -1,9 +1,66 @@
 var express = require('express');
+var url = require('url')
 var fs = require('fs');
+var moment = require('moment');
 var RestClient = require('./tetration.js');
 var credentials = require('./credentials.js')
 var prototab = require('./protocol_table.js')
 var excl_ports = require('./exclude_ports.js')
+
+var alertLog = require('./log.js');
+
+
+var kafka = require('kafka-node'),
+    Consumer = kafka.Consumer,
+    client = new kafka.KafkaClient({kafkaHost: '172.26.34.181:9092'}),
+    consumer = new Consumer(client, [{topic: 'default-kafka-defaultdatatap', partition: 0 }],{ autoCommit: true });
+
+consumer.on('message', function (message) {
+    console.log("\n### Message from Kafka: ");
+    console.log(message.value);
+    try {
+        var alert = JSON.parse(message.value);
+        console.log("\nAlert message:");
+        console.log(alert);
+        try {
+            var details = JSON.parse(alert.alert_details);
+            console.log("\nAlert details message: ");
+            console.log(details);  
+            alertLog.addToLog(message.value);    
+            io.sockets.emit('log-event',message.value)
+        }
+         catch (e) {
+            console.log("Not alert JSON, which doesn't have details JSON");
+        }
+                       
+        //console.log("\nCascased alert message with JSON: " + alert);
+        //console.log("\nCascased alert message with JSON.stringfy: " + JSON.stringify(alert));
+        //console.log("\nCascased details message with JSON: " + details);
+        //console.log("\nCascased details message with JSON.stringfy: " + JSON.stringify(details));
+    }
+    catch (e) {
+        console.log("Not JSON format !!!");
+    }
+});
+
+consumer.on('error', function (err) {
+    console.log('error', err);
+  });
+  
+  /*
+  * If consumer get `offsetOutOfRange` event, fetch data from the smallest(oldest) offset
+  consumer.on('offsetOutOfRange', function (topic) {
+    topic.maxNum = 2;
+    offset.fetch([topic], function (err, offsets) {
+      if (err) {
+        return console.error(err);
+      }
+      var min = Math.min.apply(null, offsets[topic.topic][topic.partition]);
+      consumer.setOffset(topic.topic, topic.partition, min);
+    });
+  });
+  */
+
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
 const tetclient = new RestClient(credentials.API_ENDPOINT, credentials.API_KEY, credentials.API_SECRET)
@@ -35,6 +92,7 @@ function parseData(body) {
     appVisData.detail.primary = body.primary
     appVisData.detail.version = body.version
     appVisData.detail.creation = body.created_at
+    appVisData.detail.version_list = []
 
     //console.log( body);
     // cluster handling 
@@ -174,28 +232,48 @@ function parseData(body) {
 
 router.get('/fapps/:appid', (req, res, next) => {
     var appid = req.params.appid;
+    var ver = req.query.version 
     try {
-        var body = JSON.parse(fs.readFileSync('public/data/'+appid+'.json', 'utf8'));
+        var body;
+        if ( ver && ver != 'null' )
+            body = JSON.parse(fs.readFileSync('public/data/'+appid +'/'+ver+'.json', 'utf8'));
+        else
+            body = JSON.parse(fs.readFileSync('public/data/'+appid +'.json', 'utf8'));
         var appVisData = parseData ( body);
+        var versions = []
+        fs.readdirSync( 'public/data/'+appid).forEach( file => {
+            versions.push( file.substring(0, file.length-5))
+            //console.log(file.substring(0, file.length-5));
+        });
+        appVisData.detail.version_list = versions
         res.send( appVisData ); 
-    } catch ( exception ) {
-        res.sendStatus(404);
+    } catch ( exception) {
+        res.sendStatus(404)
     }
 });
 
 router.get('/apps/pos/:appid', (req, res, next) => {
     var appid = req.params.appid;
+    var ver = req.query.version 
     try {
-        var body = JSON.parse( fs.readFileSync('public/data/' + appid + '.pos', 'utf8'));
+        var body;
+        if ( ver && ver != 'null' )
+            body = JSON.parse( fs.readFileSync('public/data/' + appid + '/' + ver + '.pos', 'utf8'));
+        else
+            body = JSON.parse( fs.readFileSync('public/data/' + appid + '.pos', 'utf8'));
         res.send( body)
     } catch ( exception ) {
         res.sendStatus(404)
-    } 
+    }
 });
 
 router.post('/apps/pos/:appid', (req, res, next) => {
     var appid = req.params.appid
-    fs.writeFileSync( 'public/data/' + appid + '.pos', JSON.stringify(req.body), 'utf8');
+    var ver = req.query.version
+    if ( ver && ver != 'null' )
+        fs.writeFileSync( 'public/data/' + appid + '/' + ver + '.pos', JSON.stringify(req.body), 'utf8');
+    else
+        fs.writeFileSync( 'public/data/' + appid + '.pos', JSON.stringify(req.body), 'utf8');
     res.sendStatus(200);
 });
 
