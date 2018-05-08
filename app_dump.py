@@ -34,6 +34,7 @@ if resp.status_code == 200 :
             appnames['id'] = str(app['id'])
             appnames['name'] = str(app['name'])
             appnames['version'] = str(app['latest_adm_version'])
+			apps.append( appnames)
 
 for app in apps:
     resp = restclient.get('/applications/%s/details' %(app['id']))
