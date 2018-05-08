@@ -3,7 +3,7 @@ import pprint
 import json
 import os
 
-API_ENDPOINT="https://tetration-cluster.hostname.here"
+API_ENDPOINT="https://medusa-cpoc.cisco.com"
 
 # ``verify`` is an optional param to disable SSL server authentication.
 # By default, Tetration appliance dashboard IP uses self signed cert after
@@ -30,7 +30,6 @@ if resp.status_code == 200 :
         appf.write( resp.text)
         respbody = json.loads( resp.text)
         for app in respbody:
-            print(app)
             appnames = {}
             appnames['id'] = str(app['id'])
             appnames['name'] = str(app['name'])
