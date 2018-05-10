@@ -7,6 +7,7 @@ router.get('/', function(req, res, next) {
 });
 router.get('/cdp',function(req, res, next) {
   res.render('cdp', { title: 'CDP Test ' });
+});
 router.get('/alert', function(req, res, next) {
   res.render('alert', { title: 'Alert Viewer' });
 });

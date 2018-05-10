@@ -248,6 +248,7 @@ router.get('/fapps/:appid', (req, res, next) => {
         appVisData.detail.version_list = versions
         res.send( appVisData ); 
     } catch ( exception) {
+        console.log( exception)
         res.sendStatus(404)
     }
 });
@@ -263,6 +264,7 @@ router.get('/apps/pos/:appid', (req, res, next) => {
             body = JSON.parse( fs.readFileSync('public/data/' + appid + '.pos', 'utf8'));
         res.send( body)
     } catch ( exception ) {
+        console.log( exception)
         res.sendStatus(404)
     }
 });
