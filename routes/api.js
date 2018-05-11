@@ -242,9 +242,11 @@ router.get('/fapps/:appid', (req, res, next) => {
         var appVisData = parseData ( body);
         var versions = []
         fs.readdirSync( 'public/data/'+appid).forEach( file => {
-            versions.push( file.substring(0, file.length-5))
-            //console.log(file.substring(0, file.length-5));
+            if ( file.indexOf('.json') > 0) 
+                versions.push( file.substring(0, file.length-5))
         });
+        versions.sort( function(a,b) { return parseInt(a)- parseInt(b);})
+        //console.log(versions)
         appVisData.detail.version_list = versions
         res.send( appVisData ); 
     } catch ( exception) {
