@@ -15,7 +15,7 @@ import os, sys, getopt
 #   "api_key": "<hex string>",
 #   "api_secret": "<hex string>"
 # }
-
+requests.packages.urllib3.disable_warnings()
 
 def dump_applications( endpoint):
     restclient = RestClient( endpoint +'/',

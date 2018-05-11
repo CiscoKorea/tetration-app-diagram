@@ -5,10 +5,11 @@ from selenium.webdriver.support import expected_conditions as EC # available sin
 import requests, re, time, os, json, sys, getopt
 from tetpyclient import RestClient
 
+requests.packages.urllib3.disable_warnings()
 # Create a new instance of the Firefox driver
 driver = webdriver.Firefox()
 
-def dump_application_revisions( endpoint):
+def dump_application_revisions( endpoint, username, password):
     restclient = RestClient( endpoint +'/',
                     credentials_file='api_cred.json',
                     verify=False)
@@ -34,8 +35,7 @@ def dump_application_revisions( endpoint):
     # go to the tetration login page
     driver.get(endpoint)
     ids = ['h4_user_email', 'h4_user_password']
-    #vals = ['hyungsok@cpocsyd.local', 'J|{Di6dV02l']
-    vals = ['hyungsok@cisco.com', '1234Qwer']
+    vals = [ username, password]
     for idx, eid in enumerate(ids):
         element = driver.find_element_by_id( eid) 
         element.send_keys( vals[idx])
@@ -62,21 +62,25 @@ def dump_application_revisions( endpoint):
 
 if __name__ == '__main__':
     # Read command line args
-    endpoint = None
-    myopts, args = getopt.getopt(sys.argv[1:],"h:")
+    endpoint = username = password = None
+    myopts, args = getopt.getopt(sys.argv[1:],"h:u:p:")
     for o, a in myopts:
         if o == '-h':
             if not a.startswith('http') :
                 endpoint = 'https://' + a
             else:
                 endpoint = a
+        elif o == '-u':
+            username = a
+        elif o == '-p':
+            password = a
         else:
-            print("Usage : {0} -h https://{{tetration-ip-address}} ".format( sys.argv[0]))
+            print("Usage : {0} -h https://{{tetration-ip-address}} -u {{username}} -p {{password}} ".format( sys.argv[0]))
             sys.exit(0)
-    if endpoint :
+    if endpoint and username and password :
         print("tetration cluster ip is {0}".format( endpoint))
-        dump_application_revisions( endpoint)
+        dump_application_revisions( endpoint, username, password)
     else:
-        print("Usage : {0} -h https://{{tetration-ip-address}}".format( sys.argv[0]))
+        print("Usage : {0} -h https://{{tetration-ip-address}} -u {{username}} -p {{password}} ".format( sys.argv[0]))
         sys.exit(0)
     
