@@ -6,8 +6,13 @@ import requests, re, time, os, json, sys, getopt
 from tetpyclient import RestClient
 
 requests.packages.urllib3.disable_warnings()
+from selenium.webdriver.firefox.options import Options
+
+options = Options()
+options.add_argument("--headless")
+#options.set_headless(headless=True)
 # Create a new instance of the Firefox driver
-driver = webdriver.Firefox()
+driver = webdriver.Firefox( firefox_options=options)
 
 def dump_application_revisions( endpoint, username, password):
     restclient = RestClient( endpoint +'/',

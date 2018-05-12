@@ -1,7 +1,7 @@
 from tetpyclient import RestClient
 import pprint
 import json
-import os, sys, getopt
+import os, sys, getopt, requests
 
 # ``verify`` is an optional param to disable SSL server authentication.
 # By default, Tetration appliance dashboard IP uses self signed cert after
