@@ -42,7 +42,12 @@
             $('#applications').empty();
             var idx = 0
             for( app of data) {
-                $('#applications').append("<li class='application-list'><p class='text-app-list' id='app-" + idx + "' data-app-id='" + app.id + "' >" + app.name + " [by: " + app.author +"] </p></li>");
+                var ver = null;
+                if ( app.version )
+                    ver = app.version 
+                else if ( app.latest_adm_version)
+                    ver = app.latest_adm_version
+                $('#applications').append("<li class='application-list'><p class='text-app-list' id='app-" + idx + "' data-app-id='" + app.id + "' data-app-ver='"+ver+"' >" + app.name + " [by: " + app.author +"] </p></li>");
                 document.getElementById('app-'+idx).addEventListener('click', showDiagram, false);
                 document.getElementById('app-'+idx).addEventListener('click', showServerName, false);
                 idx = idx + 1;
@@ -223,10 +228,10 @@
     
     function showDiagram( event) {
         var appid = event.target.getAttribute('data-app-id')
-        var el = document.getElementById('versionselect')
-        var ver = null
-        if ( el )
-            ver = el.options[el.selectedIndex].value;
+        var ver = event.target.getAttribute('data-app-ver')
+        if( ver == undefined)
+            ver = "null"
+        //console.log('showDiagram with ' + ver)
         loadDot( appid, ver);
         getLocation( appid, ver);
     }
@@ -237,6 +242,7 @@
         var ver = null
         if ( el )
             ver = el.options[el.selectedIndex].value;
+        //console.log('showDiagramWithVersion with ' + ver)
         loadDot( appid, ver);
         getLocation( appid, ver);        
     }

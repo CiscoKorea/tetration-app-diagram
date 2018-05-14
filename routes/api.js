@@ -74,7 +74,11 @@ router.get('/apps', (req, res, next) => {
   tetclient.get('/applications', (error, response, body) => {
     var retval = []
     body.forEach( function( item) {
-        d = { name: item.name, author: item.author, id: item.id}
+        d = { name: item.name, author: item.author, id: item.id }
+        if ( item.version)
+            d[ 'version'] = item.version
+        else if( item.latest_adm_version)
+            d['version'] = item.latest_adm_version;
         retval.push(d)
         //console.log( JSON.stringify(d))
     });
@@ -233,19 +237,21 @@ function parseData(body) {
 router.get('/fapps/:appid', (req, res, next) => {
     var appid = req.params.appid;
     var ver = req.query.version 
+    var versions = [];
     try {
         var body;
-        if ( ver && ver != 'null' )
-            body = JSON.parse(fs.readFileSync('public/data/'+appid +'/'+ver+'.json', 'utf8'));
-        else
-            body = JSON.parse(fs.readFileSync('public/data/'+appid +'.json', 'utf8'));
-        var appVisData = parseData ( body);
-        var versions = []
         fs.readdirSync( 'public/data/'+appid).forEach( file => {
             if ( file.indexOf('.json') > 0) 
                 versions.push( file.substring(0, file.length-5))
+                versions.sort( function(a,b) { return parseInt(a)- parseInt(b);})
         });
-        versions.sort( function(a,b) { return parseInt(a)- parseInt(b);})
+        try {
+            body = JSON.parse(fs.readFileSync('public/data/'+appid +'/'+ver+'.json', 'utf8'));
+        } catch (error) {
+            ver = versions[versions.length-1]
+            body = JSON.parse(fs.readFileSync('public/data/'+appid +'/'+ver+'.json', 'utf8'));
+        }
+        var appVisData = parseData ( body);
         //console.log(versions)
         appVisData.detail.version_list = versions
         res.send( appVisData ); 
